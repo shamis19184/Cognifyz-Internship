@@ -1,0 +1,482 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[2]:
+
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+# In[3]:
+
+
+df = pd.read_csv('Dataset.csv')
+
+
+# In[4]:
+
+
+df.head()
+
+
+# In[5]:
+
+
+df.shape
+
+
+# In[6]:
+
+
+df.size
+
+
+# In[7]:
+
+
+df.info()
+
+
+# In[8]:
+
+
+for column in df.columns:
+    if df[column].dtype == 'object':
+        print(column.upper(),': ',df[column].nunique())
+        print(df[column].value_counts(normalize=True).sort_values())
+        print('\n')
+
+
+# In[9]:
+
+
+df = df.replace('��','I',regex=True)
+df = df.replace('�_','a',regex=True)
+df = df.replace('�','A',regex=True)
+
+
+# In[10]:
+
+
+df
+
+
+# In[11]:
+
+
+df.duplicated().sum()
+
+
+# In[12]:
+
+
+df.isnull().sum()
+
+
+# In[13]:
+
+
+df.dropna(inplace=True)
+
+
+# In[14]:
+
+
+df.shape
+
+
+# In[15]:
+
+
+df.size
+
+
+# In[16]:
+
+
+df.describe()
+
+
+# In[17]:
+
+
+df.describe(include='object').T
+
+
+# # LEVEL 1
+
+# # TASK-1
+
+# # Task: Top Cuisines
+
+# # Determine the top three most common cuisines in the dataset.
+
+# In[18]:
+
+
+top_3 = df['Cuisines'].str.split(', ').explode().value_counts().head(3)
+top_3
+
+
+# # Calculate the percentage of restaurants that serve each of the top cuisines.
+
+# In[19]:
+
+
+count_restaurants = len(df)
+
+percentage_cuisine = {}
+
+for Cuisines, count in top_3.items():
+    percent = (count/count_restaurants) * 100
+    percentage_cuisine[Cuisines] = percent
+    
+print("Percentage of restaurants that serve each of the top cuisines")
+
+for Cuisines, percent in percentage_cuisine.items():
+    print(f'{Cuisines} : {percent:.2f}%')
+
+
+
+# # TASK-2
+
+# # Task: City Analysis
+
+# # Identify the city with the highest number of restaurants in the dataset.
+
+# In[20]:
+
+
+city_high_restaurants = df.groupby('Restaurant Name')['City'].sum().value_counts().head(1)
+
+
+# In[21]:
+
+
+city_high_restaurants
+
+
+# # Calculate the average rating for restaurants in each city.
+
+# In[22]:
+
+
+average_rating_restaurant_city = df.groupby('City')['Aggregate rating'].mean()
+
+
+# In[23]:
+
+
+average_rating_restaurant_city
+
+
+# # Determine the city with the highest average rating.
+
+# In[24]:
+
+
+average_rating_restaurant_city.idxmax()
+#The idxmax() method returns a Series with the index of the maximum value for each column.
+
+
+# # TASK-3
+
+# # Task: Price Range Distribution
+
+# # Create a histogram or bar chart to visualize the distribution of price ranges among the restaurants.
+
+# In[25]:
+
+
+Price_range = df['Price range'].value_counts()
+
+
+# In[26]:
+
+
+Price_range
+
+
+# In[27]:
+
+
+plt.bar(Price_range.index, Price_range)
+plt.title('distribution of price ranges among the restaurants')
+plt.xlabel('Range of price')
+plt.ylabel('Count of Restaurants')
+plt.show()
+
+
+# # Calculate the percentage of restaurants in each price range category.
+
+# In[28]:
+
+
+Price_range = df['Price range'].value_counts()
+
+num_restaurants = len(df)
+
+
+percentage_price_range = {}
+
+for price, count in Price_range.items():
+    percent = (count/num_restaurants) * 100
+    percentage_price_range[price] = percent
+    
+print("Percentage of restaurants in each price range category")
+
+for price, percent in percentage_price_range.items():
+    print(f'Price range {price} : {percent:.2f}%')
+
+
+# # TASK-4
+
+# # Task: Online Delivery
+
+# # Determine the percentage of restaurants that offer online delivery.
+
+# In[29]:
+
+
+online = (df['Has Online delivery'] == 'Yes').mean() * 100
+online
+
+
+# # Compare the average ratings of restaurants with and without online delivery.
+
+# In[30]:
+
+
+offline = (df['Has Online delivery'] == 'No').mean() * 100
+offline
+
+
+# In[31]:
+
+
+plt.pie([online,offline],labels=['online_delivery','offline_delivery'], autopct='%1.1f%%')
+plt.show()
+
+
+# 
+# 
+# # LEVEL - 2
+
+# # TASK-1
+
+# # Task:  Restaurant Ratings
+
+# # Analyze the distribution of aggregate ratings and determine the most common rating range.
+
+# In[48]:
+
+
+rating_distribution = df['Aggregate rating'].value_counts()
+rating_distribution
+
+
+# In[58]:
+
+
+rating_distribution.sort_index()
+
+
+# In[44]:
+
+
+most_common_rating_range = rating_distribution.idxmax()
+most_common_rating_range
+
+
+# In[53]:
+
+
+plt.hist(df['Aggregate rating'], bins=15)
+plt.title('Distribution of Aggregate_Rating')
+plt.xlabel('Aggregate_Rating')
+plt.ylabel('Frequency')
+
+
+# # Calculate the average number of votes received by restaurants.
+
+# In[54]:
+
+
+df['Votes'].mean()
+
+
+# # TASK-2
+
+# # Task: Cuisine Combination
+
+# # Identify the most common combinations of cuisines in the dataset.
+
+# In[70]:
+
+
+cuisine_combinations = df['Cuisines'].str.split(',').explode()
+print('Most common combinations of cuisines')
+cuisine_combinations.value_counts().head(10)
+
+
+# # Determine if certain cuisine combinations tend to have higher ratings.
+
+# In[74]:
+
+
+def cuisine_combination_rating(df):
+    df['cuisine_combination'] = df['Cuisines'].str.split(",")
+    df = df.explode('cuisine_combination')
+    cuisine_ratings = df.groupby("cuisine_combination")['Aggregate rating'].mean()
+    cuisine_ratings = cuisine_ratings.sort_values(ascending=False)
+
+    plt.figure(figsize=(12, 6))
+    cuisine_ratings.head(10).plot(kind='bar', color='turquoise')
+
+    plt.xlabel('Cuisine Combination')
+    plt.ylabel('Average Rating')
+    plt.title('Average Ratings for the Most Common Cuisine Combinations')
+
+cuisine_combination_rating(df)
+
+
+# # TASK-3 
+
+# # Task: Geographic Analysis
+
+# # Plot the locations of restaurants on a map using longitude and latitude coordinates.
+# 
+
+# In[76]:
+
+
+pip install folium
+
+
+# In[77]:
+
+
+df1 = df[['Restaurant Name', 'Longitude', 'Latitude']]
+data = pd.DataFrame(df1)
+
+
+# In[78]:
+
+
+import folium
+
+base_map = folium.Map(location=[df['Latitude'].mean(), df['Longitude'].mean()], zoom_start=10)
+
+for i, row in data.iterrows():
+    
+    latitude = row['Latitude']
+    longitude = row['Longitude']
+    location_name = row['Restaurant Name']
+    marker = folium.Marker([latitude, longitude], tooltip=location_name)
+    marker.add_to(base_map)
+    
+base_map.save("map.html")
+
+
+# In[80]:
+
+
+import plotly.express as px
+fig = px.scatter(df, x='Latitude', y='Longitude', text='Restaurant Name',
+                 title='Scatter Plot of Latitude vs. Longitude with Restaurant Names')
+
+fig.update_traces(marker=dict(size=8, opacity=0.7, line=dict(width=0)))
+
+fig.update_traces(textposition='top center')
+fig.show(renderer="notebook")
+
+
+# # Identify any patterns or clusters of restaurants in specific areas.
+
+# In[82]:
+
+
+from sklearn.cluster import KMeans
+
+coordinates = df1[['Longitude', 'Latitude']]
+kmeans = KMeans(n_clusters=3, n_init=10)
+df1.loc[:, 'cluster'] = kmeans.fit_predict(coordinates)
+
+
+# In[84]:
+
+
+from scipy.cluster.hierarchy import linkage
+from sklearn.preprocessing import StandardScaler
+X = df[['Latitude', 'Longitude']]
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+#hierarchical clustering
+linked = linkage(X_scaled, method='ward')
+plt.figure(figsize=(12, 8))
+sns.clustermap(X_scaled, method='ward', cmap='viridis', figsize=(10, 8))
+
+plt.title('Agglomerative-Hierarchical-Clustering')
+plt.show()
+
+
+# # TASK-4
+
+# # Task: Restaurant Chains
+
+# # Identify if there are any restaurant chains present in the dataset.
+# 
+
+# In[87]:
+
+
+restaurant = df['Restaurant Name'].value_counts()
+restaurant_chains = restaurant[restaurant>1]
+restaurant_chains
+
+
+# # Analyze the ratings and popularity of different restaurant chains.
+
+# In[89]:
+
+
+chain = df.groupby('Restaurant Name').agg({'Aggregate rating':'mean', 'Votes':'sum'})
+chain = chain.sort_values(by='Aggregate rating', ascending=False)
+top_chain = chain.head(10)
+
+print('Top 10 Restaurant Chains:')
+print(top_chain)
+
+
+
+
+plt.subplot(1, 2, 1)
+sns.barplot(x=top_chain['Aggregate rating'], y=top_chain.index)
+plt.xlabel('Average Rating')
+plt.title('Average Rating of Top Chains')
+
+
+
+
+plt.show()
+
+
+# In[90]:
+
+
+plt.subplot(1, 2, 2)
+sns.barplot(x=top_chain['Votes'], y=top_chain.index)
+plt.xlabel('Total Votes (Popularity)')
+plt.title('Popularity of Top Chains')
+
+
+# In[ ]:
+
+
+
+
